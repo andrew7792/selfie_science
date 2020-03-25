@@ -20,7 +20,8 @@ nms_thresh = 0.1
 
 MAX_INPUT_DIM = 5000.0
 
-config = tf.ConfigProto()
+# config = tf.ConfigProto()
+config = tf.ConfigProto(device_count={'GPU': 0})
 
 model_face = tiny_face_model.Model(weight_file_path)
 
@@ -128,58 +129,29 @@ def getFace(image):
 
     refind_idx = nms(bboxes, nms_thresh)
     refined_bboxes = bboxes[refind_idx]
-    print("len(refined_bboxes)", refined_bboxes, "len(bboxes)", len(bboxes), "len(bboxes)", refind_idx)
-    face_info = overlay_bounding_boxes(raw_img, refined_bboxes)
-    bbox1 = refined_bboxes[0].astype(np.int64)
-    bbox2 = refined_bboxes[1].astype(np.int64)
-    bbox3 = refined_bboxes[2].astype(np.int64)
-    print(type(bbox1[0]),bbox2[1],bbox3[2])
-    image = cv2.imread('images/1660315892310801029.jpg')
-    cv2.rectangle(image, (bbox1[0], bbox1[1]), (bbox1[2], bbox1[3]), (255, 0, 0), 2)
-    cv2.rectangle(image, (bbox2[0], bbox2[1]), (bbox2[2], bbox2[3]), (255, 0, 0), 2)
-    cv2.rectangle(image, (bbox3[0], bbox3[1]), (bbox3[2], bbox3[3]), (255, 0, 0), 2)
+
+    # convert PIL Image to OpenCV Image
+    image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+
+    if len(bboxes) == 0:
+        return False
+    for refined_bbox in refined_bboxes:
+        bbox = refined_bbox.astype(np.int64)
+        cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
+
     cv2.imwrite('output.jpg', image)
-    # cv2.imshow('output', image)
-    #
+    cv2.namedWindow('output', cv2.WINDOW_NORMAL)
+    cv2.imshow('output', image)
+    cv2.resizeWindow('output', 600, 600)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
 
-
-    #     image = imutils.resize(raw_img, width=800)
-    #     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    #     scaling = 800 / raw_img.shape[1]
-    #     rect = [int(scaling * x) for x in bbox]
-    #     x1, y1, x2, y2 = rect[0], rect[1], rect[2], rect[3]
-    # faceOrig = imutils.resize(image[y1:y2, x1:x2], width=256)
-    return face_info
-    # if type(face_info) != type(None):
-    #     bbox = face_info[1]
-    #     face = face_info[0]
-    #
-    #     image = imutils.resize(raw_img, width=800)
-    #     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-    #     scaling = 800 / raw_img.shape[1]
-    #     rect = [int(scaling * x) for x in bbox]
-    #     x1, y1, x2, y2 = rect[0], rect[1], rect[2], rect[3]
-    #
-    #
-    #     rects = dlib.rectangle(x1, y1, x2, y2)
-    #
-    #     faceAligned = fa.align(image, gray, rects)
-    #     faceOrig = imutils.resize(image[y1:y2, x1:x2], width=256)
-    #
-    #     face = cv2.resize(faceAligned, (160, 160), cv2.INTER_AREA)
-    #     face = np.asarray(face, 'float32')
-    #     mean, std = face.mean(), face.std()
-    #     face = (face - mean) / std
-    #     samples = np.expand_dims(face, axis=0)
-    #     yhat = embedding_model.predict(samples)
-    #     embedding = json.dumps(yhat[0].tolist())
-    #     # print(bbox, '\n', '*' * 20, '\n', '*' * 20, '\n', embedding)
-    #     return embedding
+    return len(refined_bboxes)
 
 
 image_path = 'images/1660315892310801029.jpg'
 im = Image.open(image_path)
 
-face_emb = getFace(im)
+faces = getFace(im)
+print(faces)
 
-im.show()
