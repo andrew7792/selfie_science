@@ -8,6 +8,7 @@ import cv2
 import imutils
 import json
 from pprint import pprint
+from age_gender import ageGender
 from util import nms
 from keras.models import load_model
 from scipy.special import expit
@@ -131,17 +132,58 @@ def getFace(image):
     refined_bboxes = bboxes[refind_idx]
 
     # convert PIL Image to OpenCV Image
-    image = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    image_cv = cv2.cvtColor(np.array(image), cv2.COLOR_RGB2BGR)
+    origin_img = image_cv.copy()
 
     if len(bboxes) == 0:
         return False
     for refined_bbox in refined_bboxes:
         bbox = refined_bbox.astype(np.int64)
-        cv2.rectangle(image, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
 
-    cv2.imwrite('output.jpg', image)
+        cv2.rectangle(origin_img, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
+
+        orig_w = image_cv.shape[0]
+        orig_h = image_cv.shape[1]
+
+        face_h = int((bbox[3] - bbox[1])*1.5)
+        face_w = int((bbox[2] - bbox[0])*1.5)
+        face_x = bbox[0] - int(face_w/2)
+        face_y = bbox[1] - int(face_h/2)
+
+        if face_x < 0:
+            face_x = 0
+        if face_y < 0:
+            face_y = 0
+        if face_w > orig_w:
+            face_w = orig_w - 2
+        if face_h > orig_h:
+            face_h = orig_h - 2
+
+        crop_face = image_cv[face_y:face_y + face_h, face_x:face_x + face_w].copy()
+
+        age, gender, face_cv2 = ageGender(crop_face)
+        print(age, gender)
+
+        if age is not False:
+            font = cv2.FONT_HERSHEY_SIMPLEX
+            bottomLeftCornerOfText = (bbox[0], bbox[1]-15)
+            fontScale = 1
+            fontColor = (0, 0, 255)
+            lineType = 2
+
+            cv2.putText(origin_img, age+gender,
+                        bottomLeftCornerOfText,
+                        font,
+                        fontScale,
+                        fontColor,
+                        lineType)
+
+
+        # cv2.rectangle(image_cv, (bbox[0], bbox[1]), (bbox[2], bbox[3]), (255, 0, 0), 2)
+
+    cv2.imwrite('output.jpg', origin_img)
     cv2.namedWindow('output', cv2.WINDOW_NORMAL)
-    cv2.imshow('output', image)
+    cv2.imshow('output', origin_img)
     cv2.resizeWindow('output', 600, 600)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
@@ -150,6 +192,7 @@ def getFace(image):
 
 
 image_path = 'images/1660315892310801029.jpg'
+# image_path = 'images/2189357871670292920.jpg'
 im = Image.open(image_path)
 
 faces = getFace(im)
