@@ -9,6 +9,7 @@ import imutils
 import json
 from pprint import pprint
 from age_gender import ageGender
+# from age_gender2 import age_gender_detector
 from util import nms
 from keras.models import load_model
 from scipy.special import expit
@@ -145,10 +146,10 @@ def getFace(image):
         orig_w = image_cv.shape[0]
         orig_h = image_cv.shape[1]
 
-        face_h = int((bbox[3] - bbox[1])*1.5)
-        face_w = int((bbox[2] - bbox[0])*1.5)
-        face_x = bbox[0] - int(face_w/2)
-        face_y = bbox[1] - int(face_h/2)
+        face_h = int((bbox[3] - bbox[1])*1.4)
+        face_w = int((bbox[2] - bbox[0])*1.4)
+        face_x = bbox[0] - int(face_w*0.2)
+        face_y = bbox[1] - int(face_h*0.2)
 
         if face_x < 0:
             face_x = 0
@@ -160,9 +161,19 @@ def getFace(image):
             face_h = orig_h - 2
 
         crop_face = image_cv[face_y:face_y + face_h, face_x:face_x + face_w].copy()
+        cv2.imwrite('cropped.jpg', crop_face)
+        # crop_face2 = crop_face.copy()
+
+        new_x = bbox[0] if bbox[0] > 0 else 0
+        new_y = bbox[1] if bbox[1] > 0 else 0
+        new_w = bbox[2] - new_x
+        new_h = bbox[3] - new_y
 
         age, gender, face_cv2 = ageGender(crop_face)
         print(age, gender)
+        # print(new_x, new_y, new_w, new_h)
+        # age, gender = age_gender_detector(image_cv, face_x, face_y, face_w, face_h)
+        # print(age, gender)
 
         if age is not False:
             font = cv2.FONT_HERSHEY_SIMPLEX
@@ -190,9 +201,7 @@ def getFace(image):
 
     return len(refined_bboxes)
 
-
-image_path = 'images/1660315892310801029.jpg'
-# image_path = 'images/2189357871670292920.jpg'
+image_path = 'images/2189263141611595188.jpg'
 im = Image.open(image_path)
 
 faces = getFace(im)
